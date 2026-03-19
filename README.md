@@ -92,38 +92,8 @@ Expected shape:
 }
 ```
 
-## Quality checks
-
-- Run tests:
-
-   ```bash
-   uv run pytest
-   ```
-
-- Format code:
-
-   ```bash
-   uv run ruff format
-   ```
-
-- Lint code:
-
-   ```bash
-   uv run ruff check
-   ```
-
-## Deployment
-
-Use LiveKit CLI to deploy:
-
-```bash
-lk agent create
-```
-
-See LiveKit deployment docs: https://docs.livekit.io/agents/ops/deployment/
-
 ## Notes
 
-- Entrypoint remains `src/agent.py` (used by runtime and Docker deployment).
+- Entrypoint remains `src/agent.py`.
 - Conversation summary files are written in UTC timestamp format.
 - Do not commit `.env.local` or secrets.
