@@ -21,6 +21,10 @@ A voice AI medical follow-up coordinator built with LiveKit Agents (Python). The
 - VAD / turn detection: Silero + LiveKit multilingual turn detector
 - Package/tooling: `uv`, `pytest`, `ruff`
 
+## Demo Video 
+
+https://github.com/user-attachments/assets/fd51ba0c-6fdc-43c7-986d-30fc865a7330
+
 ## Project layout
 
 ```text
