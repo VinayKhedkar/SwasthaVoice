@@ -1,4 +1,4 @@
-# Maven Medical Follow-up Agent
+# Medical Follow-up Agent
 
 A voice AI medical follow-up coordinator built with LiveKit Agents (Python). The agent conducts recovery check-ins in natural Hinglish, assesses status, and generates a structured JSON summary at the end of each conversation.
 
