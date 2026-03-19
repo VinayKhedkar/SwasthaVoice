@@ -1,122 +1,129 @@
-# LiveKit Agent
+# Maven Medical Follow-up Agent
 
-A voice AI project built with [LiveKit Agents for Python](https://github.com/livekit/agents) and [LiveKit Cloud](https://cloud.livekit.io/).
+A voice AI medical follow-up coordinator built with LiveKit Agents (Python). The agent conducts recovery check-ins in natural Hinglish, assesses status, and generates a structured JSON summary at the end of each conversation.
 
-> [!IMPORTANT]
-> This project was converted to code from the LiveKit Agent Builder. The code is identical to production deployments from the builder. Follow the steps below to make it your own and deploy it to LiveKit Cloud. once you do so, you can delete the version in the builder.
+## What this project does
 
-## Next steps
+- Runs a real-time voice agent on LiveKit.
+- Greets patients and collects symptom/recovery updates conversationally.
+- Uses multilingual speech and turn detection optimized for mixed-language conversations.
+- Produces a structured outcome (`recovered`, `needed`, `physical-visit`, or `emergency`).
+- Saves call summaries as timestamped JSON files in the `data/` folder.
 
-### Run and deploy your agent
+## Tech stack
 
-**Get your agent running locally and in production:**
+- Python 3.10+
+- [LiveKit Agents SDK](https://docs.livekit.io/agents/)
+- STT: Deepgram `nova-3` (`multi` language)
+- LLM: OpenAI `gpt-4.1-mini` (main dialogue)
+- Summary LLM: Gemini `gemini-2.5-flash`
+- TTS: Cartesia `sonic-3`
+- VAD / turn detection: Silero + LiveKit multilingual turn detector
+- Package/tooling: `uv`, `pytest`, `ruff`
 
-1. **Run locally**: Follow the [Quickstart](#quickstart) section below to set up your environment and test the agent
-2. **Deploy to production**: See the [Deploy to production](#deploy-to-production) section for deployment options and best practices
+## Project layout
 
-### Quickstart
+```text
+src/
+   agent.py          # Agent entrypoint and core behavior
+data/
+   *.json            # Generated call summaries
+pyproject.toml      # Dependencies and tooling config
+AGENTS.md           # Contributor/agent coding guidance
+```
 
-**Get up and running** so you can start customizing:
+## Prerequisites
 
-1. **Install dependencies:**
-   ```console
-   uv sync
-   ```
+- Python 3.10 or newer
+- `uv` installed
+- LiveKit Cloud project credentials
+- Provider credentials for the configured STT/LLM/TTS models
 
-2. **Set up your LiveKit credentials:**
-   
-   Sign up for [LiveKit Cloud](https://cloud.livekit.io/), then configure your environment. You can either:
-   
-   - **Manual setup**: Copy `.env.example` to `.env.local` and fill in:
-     - `LIVEKIT_URL`
-     - `LIVEKIT_API_KEY`
-     - `LIVEKIT_API_SECRET`
-   
-   - **Automatic setup** (recommended): Use the [LiveKit CLI](https://docs.livekit.io/home/cli/cli-setup):
-     ```bash
-     lk cloud auth
-     lk app env -w -d .env.local
-     ```
+## Setup
 
-3. **Download required models:**
-   ```console
-   uv run python src/agent.py download-files
-   ```
-   This downloads [Silero VAD](https://docs.livekit.io/agents/build/turns/vad/) and the [LiveKit turn detector](https://docs.livekit.io/agents/build/turns/turn-detector/) models.
+1. Install dependencies:
 
-4. **Test your agent:**
-   ```console
+    ```bash
+    uv sync
+    ```
+
+2. Configure environment variables:
+
+    ```bash
+    copy .env.example .env.local
+    ```
+
+    Fill required keys in `.env.local` (for example `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, and model provider credentials).
+
+3. Download required local model artifacts:
+
+    ```bash
+    uv run python src/agent.py download-files
+    ```
+
+## Run the agent
+
+- Local console mode:
+
+   ```bash
    uv run python src/agent.py console
    ```
-   This lets you speak to your agent directly in your terminal.
 
-5. **Run for development:**
-   ```console
+- Development worker mode:
+
+   ```bash
    uv run python src/agent.py dev
    ```
-   Use this when connecting to a frontend or telephony. This puts your agent into your LiveKit Cloud project, so use a different project if you don't want to affect production traffic.
 
+## Conversation summary output
 
-## Customize your agent
+At call end, the `get_summary` tool builds and returns JSON, and persists the same payload to `data/<timestamp>.json`.
 
-Once your agent is running, enhance it for your use case:
+Expected shape:
 
-- **Customize AI models**: LiveKit supports dozens of models through LiveKit Cloud and a collection of third-party plugins. See the [models documentation](https://docs.livekit.io/agents/models/) for available options including LLM, STT, TTS, and realtime providers.
-
-- **Add tests**: You can add a full test suite to your agent. See the [testing documentation](https://docs.livekit.io/agents/build/testing/) for more information.
-
-- **Build reliable workflows**: For complex agents, use [tasks and handoffs](https://docs.livekit.io/agents/build/workflows/) instead of long instruction prompts. This minimizes latency and improves reliability by structuring your agent into focused, reusable components.
-
-### Get help from AI coding assistants
-
-**Supercharge your development** with AI coding assistants that understand LiveKit. This project works seamlessly with [Cursor](https://www.cursor.com/), [Claude Code](https://www.anthropic.com/claude-code), and other AI coding tools.
-
-**Install the LiveKit Docs MCP server** to give your AI assistant access to LiveKit documentation:
-
-**For Cursor:**
-[![Install MCP Server](https://cursor.com/deeplink/mcp-install-light.svg)](https://cursor.com/en-US/install-mcp?name=livekit-docs&config=eyJ1cmwiOiJodHRwczovL2RvY3MubGl2ZWtpdC5pby9tY3AifQ%3D%3D)
-
-**For Claude Code:**
-```bash
-claude mcp add --transport http livekit-docs https://docs.livekit.io/mcp
+```json
+{
+   "follow_up_needed": "needed | recovered | physical-visit | emergency",
+   "conversation_summary": "Brief summary",
+   "conversation": [
+      { "speaker": "agent", "text": "..." },
+      { "speaker": "user", "text": "..." }
+   ]
+}
 ```
 
-**For Codex CLI:**
+## Quality checks
+
+- Run tests:
+
+   ```bash
+   uv run pytest
+   ```
+
+- Format code:
+
+   ```bash
+   uv run ruff format
+   ```
+
+- Lint code:
+
+   ```bash
+   uv run ruff check
+   ```
+
+## Deployment
+
+Use LiveKit CLI to deploy:
+
 ```bash
-codex mcp add --url https://docs.livekit.io/mcp livekit-docs
-```
-
-**For Gemini CLI:**
-```bash
-gemini mcp add --transport http livekit-docs https://docs.livekit.io/mcp
-```
-
-**Customize the AI assistant context**: The project includes an [AGENTS.md](AGENTS.md) file that guides AI assistants on how to work with this codebase. **Edit this file** to add your own project-specific context, patterns, and preferences. Learn more at [https://agents.md](https://agents.md).
-
-## Frontend development
-
-If you don't alread have a frontend, use the following templates and guides to get started on one:
-
-| Platform | Starter Template | What to customize |
-|----------|----------|-------------|
-| **Web** | [`livekit-examples/agent-starter-react`](https://github.com/livekit-examples/agent-starter-react) | React & Next.js—customize UI, add features, integrate with your backend |
-| **iOS/macOS** | [`livekit-examples/agent-starter-swift`](https://github.com/livekit-examples/agent-starter-swift) | Native apps for iOS, macOS, visionOS—add platform-specific features |
-| **Flutter** | [`livekit-examples/agent-starter-flutter`](https://github.com/livekit-examples/agent-starter-flutter) | Cross-platform—customize for Android, iOS, web, desktop |
-| **React Native** | [`livekit-examples/voice-assistant-react-native`](https://github.com/livekit-examples/voice-assistant-react-native) | Mobile with Expo—add native modules, customize navigation |
-| **Android** | [`livekit-examples/agent-starter-android`](https://github.com/livekit-examples/agent-starter-android) | Kotlin & Jetpack Compose—build Material Design UI |
-| **Web Embed** | [`livekit-examples/agent-starter-embed`](https://github.com/livekit-examples/agent-starter-embed) | Widget for any website—customize styling, add to your site |
-| **Telephony** | [📚 Documentation](https://docs.livekit.io/agents/start/telephony/) | Add phone calling—configure SIP, add call routing, customize prompts |
-
-## Deploy to production
-
-To deploy your agent to production, you can use the LiveKit CLI:
-
-```console
 lk agent create
 ```
 
-See the [deploying to production](https://docs.livekit.io/agents/ops/deployment/) guide for detailed instructions and optimization tips.
+See LiveKit deployment docs: https://docs.livekit.io/agents/ops/deployment/
 
-## Join the LiveKit community
+## Notes
 
-Join the [LiveKit Slack Community](https://livekit.io/join-slack) to get help from the LiveKit team and other developers.
+- Entrypoint remains `src/agent.py` (used by runtime and Docker deployment).
+- Conversation summary files are written in UTC timestamp format.
+- Do not commit `.env.local` or secrets.
